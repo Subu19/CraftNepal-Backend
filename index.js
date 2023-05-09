@@ -16,7 +16,7 @@ const socket = require("socket.io");
 const http = require("http");
 
 const corsConfig = {
-  origin: "http://localhost:3000",
+  origin: config.frondend,
   credentials: true,
 };
 
