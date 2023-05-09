@@ -1,5 +1,5 @@
 public
 node_modules
 build
-config.json
-config4.json
+./config.json
+./config4.json
