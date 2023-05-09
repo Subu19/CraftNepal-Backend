@@ -1,0 +1,13 @@
+{
+  "sqlusername": "apexMC1346102",
+  "sqlpassword": "!81qs4oBlEiWjWJJNPdW6mIn",
+  "sqlhost": "mysql.apexhosting.gdn",
+  "URI": "mongodb+srv://subu:n2PfitKWNKy7oNXs@cluster0.8kll7.mongodb.net/craftnepal?retryWrites=true&w=majority",
+  "discord": {
+    "clientId": "663371776570687498",
+    "clientSecret": "_kElOAAiBaX3lp_FpOT1vTtsaKq2sqKv"
+  },
+  "helperRole": "725209899549589534",
+  "adminRole": "725047753360539830",
+  "frondend": "http://localhost:3000/"
+}
