@@ -35,6 +35,11 @@ const {
   handleGalleryDelete,
   handleGalleryAdd,
 } = require("../Controllers/gallery");
+const {
+  handleGetGuide,
+  handleGetGuideList,
+  handleGuidePost,
+} = require("../Controllers/guide");
 var storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "public/uploads");
@@ -76,9 +81,14 @@ router.post("/post/comment", verify, handlePostComment);
 router.get("/post/comments/:id", verify, handleGetComments);
 router.post("/post/delete/:id", verify, handlePostDelete);
 
+router.get("/guide/:name", handleGetGuide);
+router.get("/guide", handleGetGuideList);
+router.post("/guide/:name", verify, upload.single("image"), handleGuidePost);
+
 router.get("/feed/:limit", getFeed);
 router.get("/gallery", getGallery);
 router.post("/delete/gallery/:season/:photo", verify, handleGalleryDelete);
+
 router.post(
   "/add/gallery/:season",
   verify,

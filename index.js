@@ -48,9 +48,10 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use(cors(corsConfig));
 app.use(express.static("public"));
-app.get("/", (req, res, next) => {
-  res.send("Welcome to craftnepal backend");
-});
+// app.get("/", (req, res, next) => {
+//   res.send("Welcome to craftnepal backend");
+// });
+
 app.use("/auth", authRouter);
 
 //api

@@ -1,0 +1,17 @@
+{
+  "header": "Here are all the commands that a player can run:",
+  "data": [
+    {
+      "title": "Market",
+      "text": "**/market**  \n Teleport to the market\n\n**/qs create**.  \n Create your shop using command.\n\n **/qs find itemname**  \nFind nearest shop with the itme\n\n**/qs staff**  \nSet staffs in your shop. They will be able to restock and manage your shop."
+    },
+    {
+      "title": "Claim",
+      "text": "**/AbandonClaim**  \nDeletes the claim you’re standing in.\n\n**/ClaimExplosions**  \nToggles if explosions are allowed in the claim.\n\n**/Trust**  \nGives another player permission to edit in your claim.\n\n**/UnTrust**  \nRevokes any permissions granted to a player in your claim.\n\n**/AccessTrust**  \nGives a player permission to use your buttons, levers, and beds.\n\n**/ContainerTrust**  \nGives a player permission to use your buttons, levers, beds, crafting gear, containers, and animals.\n\n**/TrustList**  \nLists the permissions for the claim you’re standing in.\n\n**/SubdivideClaims**  \nSwitches your shovel to subdivision mode, so you can subdivide your claims.\n\n**/RestrictSubclaim**  \nRestricts a subclaim, so that it inherits no permissions from the parent claim.\n\n**/BasicClaims**  \nPuts your shovel back in basic claims mode.\n\n**/PermissionTrust**  \nGrants a player permission to share his permission level with others.\n\n**/Untrust All**  \nRemoves all permissions for all players in your claim.\n\n**/AbandonAllClaims**  \nDeletes all of your claims.\n\n**/BuyClaimBlocks**  \nConverts server money to claim blocks.\n\n**/SellClaimBlocks**  \nConverts claim blocks to server money.\n\n**/GivePet**  \nGives away a tamed animal.\n\n**/ClaimsList**  \nLists a player’s claims and claim block details.\n\n**/IgnorePlayer**  \nIgnores a target player’s chat messages.\n\n**/UnIgnorePlayer**  \nUn-ignores a target player’s chat messages.\n\n**/IgnoredPlayerList**  \nLists all players currently ignored.\n\n**/Trapped**  \nGets a player out of a land claim he’s trapped inside.\n\n**/UnlockDrops**  \nAllows other players to pick up items you dropped when you died."
+    },
+    {
+      "title": "Essentials",
+      "text": "**/home**  \n Teleport to your home\n\n**/sethome**  \n Set home at your position\n\n**/discord link**  \n Link you discord account. DM CraftNepal bot with the code given.\n\n**/ar check**  \n Shows your rank progress\n\n **/ar check playername**  \n Check rank progress of a player\n\n**/skin <skinname>**  \n Set skins\n\n**/balance**  \n Check your balance\n\n**/baltop**  \n Check balance leaderboard\n\n"
+    }
+  ]
+}
