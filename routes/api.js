@@ -39,6 +39,7 @@ const {
   handleGetGuide,
   handleGetGuideList,
   handleGuidePost,
+  handleGuideFetch,
 } = require("../Controllers/guide");
 var storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -84,7 +85,7 @@ router.post("/post/delete/:id", verify, handlePostDelete);
 router.get("/guide/:name", handleGetGuide);
 router.get("/guide", handleGetGuideList);
 router.post("/guide/:name", verify, upload.single("image"), handleGuidePost);
-
+router.get("/guides", handleGuideFetch);
 router.get("/feed/:limit", getFeed);
 router.get("/gallery", getGallery);
 router.post("/delete/gallery/:season/:photo", verify, handleGalleryDelete);

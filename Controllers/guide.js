@@ -10,18 +10,34 @@ exports.handleGetGuideList = async (req, res, next) => {
   const guides = await Guide.find({}, "id");
   res.send(guides);
 };
+exports.handleGuideFetch = async (req, res, next) => {
+  const guides = await Guide.find({});
+  res.send(guides);
+};
 exports.handleGuidePost = async (req, res, next) => {
   if (req.user.isAdmin) {
     const data = req.body;
-    const guide = await Guide.findOneAndUpdate(
-      { id: req.params.name },
-      {
-        id: req.params.name,
-        header: data.header,
-        data: data.data,
-        image: data.image ? data.image : null,
-      }
-    );
+    var guide;
+    if (req.file) {
+      guide = await Guide.findOneAndUpdate(
+        { id: req.params.name },
+        {
+          id: req.params.name,
+          header: data.header,
+          data: JSON.parse(data.data),
+          image: req.file.filename,
+        }
+      );
+    } else {
+      guide = await Guide.findOneAndUpdate(
+        { id: req.params.name },
+        {
+          id: req.params.name,
+          header: data.header,
+          data: JSON.parse(data.data),
+        }
+      );
+    }
 
     if (!guide) {
       const newGuide = new Guide();
