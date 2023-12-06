@@ -1,6 +1,7 @@
 # CraftNepal-Backend
 This  repo is a backend server for CraftNepal Website: https://craftnepal.net/
-Config.json format:
+
+## Config.json format:
 ```json
 {
   "sqlusername": "subu",
