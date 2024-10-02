@@ -16,30 +16,30 @@ const socket = require("socket.io");
 const http = require("http");
 
 const corsConfig = {
-  origin: config.frondend,
-  credentials: true,
+    origin: config.frondend,
+    credentials: true,
 };
 
 //initialize database
 mongoDB
-  .then(() => {
-    console.log("Successfully connected to mongoDB");
-  })
-  .catch(() => {
-    console.log("Failed to connect to mongodb");
-  });
+    .then(() => {
+        console.log("Successfully connected to mongoDB");
+    })
+    .catch(() => {
+        console.log("Failed to connect to mongodb");
+    });
 
 //initialize authentication
 app.use(
-  session({
-    secret: "secret",
-    cookie: {
-      maxAge: 60000 * 60 * 24 * 7,
-    },
-    resave: false,
-    saveUninitialized: false,
-    store: MongoStore.create({ mongoUrl: config.URI }),
-  })
+    session({
+        secret: "ggcraftnepal",
+        cookie: {
+            maxAge: 60000 * 60 * 24 * 7,
+        },
+        resave: false,
+        saveUninitialized: false,
+        store: MongoStore.create({ mongoUrl: config.URI }),
+    })
 );
 
 app.use(express.json());
@@ -62,4 +62,6 @@ const server = http.createServer(app);
 const io = socket(server);
 const socketContainner = require("./Controllers/socket")(io);
 
-server.listen(3006);
+server.listen(3006, () => {
+    console.log("Server started at 3006 port");
+});
