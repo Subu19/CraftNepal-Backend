@@ -1,15 +1,15 @@
 const db = require("mysql2");
 const mongoose = require("mongoose");
-const config = require("../config.json");
+require("dotenv").config();
 
 const con = db.createPool({
-    host: config.sqlhost,
-    user: config.sqlusername,
-    password: config.sqlpassword,
+    host: process.env.SQL_HOST,
+    user: process.env.SQL_USERNAME,
+    password: process.env.SQL_PASSWORD,
     waitForConnections: true,
     connectionLimit: 10,
-    database: config.sqldatabase,
-    port: 3306,
+    database: process.env.SQL_DATABASE,
+    port: process.env.SQL_PORT || 3306, // Default to 3306 if SQL_PORT is not set
 });
 
 // con.connect((err) => {
@@ -19,7 +19,7 @@ const con = db.createPool({
 //   }
 // });
 
-const mongoDB = mongoose.connect(config.URI, {
+const mongoDB = mongoose.connect(process.env.URI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
 });

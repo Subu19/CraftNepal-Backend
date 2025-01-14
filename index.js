@@ -7,7 +7,7 @@ const app = express();
 var cors = require("cors");
 const bcrypt = require("bcrypt");
 const { authRouter } = require("./routes/auth");
-const config = require("./config.json");
+require("dotenv").config();
 const { con, mongoDB } = require("./utils/connection");
 const passport = require("passport");
 const session = require("express-session");
@@ -16,7 +16,7 @@ const socket = require("socket.io");
 const http = require("http");
 
 const corsConfig = {
-    origin: config.frondend,
+    origin: process.env.FRONTEND,
     credentials: true,
 };
 
@@ -38,7 +38,7 @@ app.use(
         },
         resave: false,
         saveUninitialized: false,
-        store: MongoStore.create({ mongoUrl: config.URI }),
+        store: MongoStore.create({ mongoUrl: process.env.URI }),
     })
 );
 
@@ -62,6 +62,6 @@ const server = http.createServer(app);
 const io = socket(server);
 const socketContainner = require("./Controllers/socket")(io);
 
-server.listen(3006, () => {
-    console.log("Server started at 3006 port");
+server.listen(process.env.PORT || 3006, () => {
+    console.log("Server started");
 });
