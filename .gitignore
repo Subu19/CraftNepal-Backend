@@ -1,7 +1,8 @@
-public
 node_modules
 build
 config.json
 realconfig.json
 testconfig.json
 .env
+public/Gallery/*
+public/uploads/*
