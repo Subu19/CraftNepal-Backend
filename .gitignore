@@ -6,3 +6,5 @@ testconfig.json
 .env
 public/Gallery/*
 public/uploads/*
+!public/uploads/readme.md
+!public/Gallery/readme.md
