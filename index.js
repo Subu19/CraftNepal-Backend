@@ -1,10 +1,10 @@
 require("./utils/strategies/discord");
 const express = require("express");
-var bodyParser = require("body-parser");
+const bodyParser = require("body-parser");
 
 const router = require("./routes/api");
 const app = express();
-var cors = require("cors");
+const cors = require("cors");
 const bcrypt = require("bcrypt");
 const { authRouter } = require("./routes/auth");
 require("dotenv").config();
@@ -13,10 +13,14 @@ const passport = require("passport");
 const session = require("express-session");
 const MongoStore = require("connect-mongo");
 const socket = require("socket.io");
-const http = require("http");
+const http = require("node:http");
 
 const corsConfig = {
-	origin: [process.env.FRONTEND, "http://play.craftnepal.net"],
+	origin: [
+		process.env.FRONTEND,
+		"http://play.craftnepal.net",
+		"http://52.187.54.155",
+	],
 	credentials: true,
 };
 
