@@ -16,30 +16,30 @@ const socket = require("socket.io");
 const http = require("http");
 
 const corsConfig = {
-    origin: process.env.FRONTEND,
-    credentials: true,
+	origin: [process.env.FRONTEND, "http://play.craftnepal.net"],
+	credentials: true,
 };
 
 //initialize database
 mongoDB
-    .then(() => {
-        console.log("Successfully connected to mongoDB");
-    })
-    .catch(() => {
-        console.log("Failed to connect to mongodb");
-    });
+	.then(() => {
+		console.log("Successfully connected to mongoDB");
+	})
+	.catch(() => {
+		console.log("Failed to connect to mongodb");
+	});
 
 //initialize authentication
 app.use(
-    session({
-        secret: "ggcraftnepal",
-        cookie: {
-            maxAge: 60000 * 60 * 24 * 7,
-        },
-        resave: false,
-        saveUninitialized: false,
-        store: MongoStore.create({ mongoUrl: process.env.URI }),
-    })
+	session({
+		secret: "ggcraftnepal",
+		cookie: {
+			maxAge: 60000 * 60 * 24 * 7,
+		},
+		resave: false,
+		saveUninitialized: false,
+		store: MongoStore.create({ mongoUrl: process.env.URI }),
+	}),
 );
 
 app.use(express.json());
@@ -49,7 +49,7 @@ app.use(passport.session());
 app.use(cors(corsConfig));
 app.use(express.static("public"));
 app.get("/", (req, res, next) => {
-    res.send("Welcome to craftnepal backend");
+	res.send("Welcome to craftnepal backend");
 });
 
 app.use("/auth", authRouter);
@@ -63,5 +63,5 @@ const io = socket(server);
 const socketContainner = require("./Controllers/socket")(io);
 
 server.listen(process.env.PORT || 3006, () => {
-    console.log("Server started");
+	console.log("Server started");
 });
