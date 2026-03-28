@@ -1,10 +1,3 @@
-node_modules
-build
-config.json
-realconfig.json
-testconfig.json
+node_modules/
+dist/
 .env
-public/Gallery/*
-public/uploads/*
-!public/uploads/readme.md
-!public/Gallery/readme.md
