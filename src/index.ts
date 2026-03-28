@@ -1,7 +1,7 @@
 import "./utils/strategies/discord";
 import express, { Express, Request, Response, NextFunction } from "express";
 import helmet from "helmet";
-import rateLimit from "express-rate-limit";
+// import rateLimit from "express-rate-limit";
 import cors from "cors";
 import session from "express-session";
 import MongoStore from "connect-mongo";
@@ -27,20 +27,19 @@ app.use(
   }),
 );
 
-// Security: Rate Limiting
-const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  standardHeaders: true,
-  legacyHeaders: false,
-});
-app.use(limiter);
+// // Security: Rate Limiting
+// const limiter = rateLimit({
+//   windowMs: 15 * 60 * 1000,
+//   max: 100,
+//   standardHeaders: true,
+//   legacyHeaders: false,
+// });
+// app.use(limiter);
 
 const corsConfig = {
   origin: [
     process.env.FRONTEND || "http://localhost:3000",
     "https://craftnepal.net",
-    // Add other trusted domains here
   ],
   credentials: true,
 };

@@ -1,76 +1,98 @@
-import { Router, Request } from 'express';
-import multer, { FileFilterCallback } from 'multer';
-import path from 'path';
-import fs from 'fs';
+import { Router, Request } from "express";
+import multer, { FileFilterCallback } from "multer";
+import path from "path";
+import fs from "fs";
 
 import {
-    getDamageLeaderboard,
-    getDeathsLeaderboard,
-    getHungryLeaderboard,
-    getMobkillLeaderboard,
-    getPlayerKillsLeaderboard,
-    getPlaytimeLeaderboard,
-    getSleepingLeaderboard,
-    getTop15,
-    getTradingLeaderboard,
-    getBalanceLeaderboard
-} from '../Controllers/leaderboard';
+  getDamageLeaderboard,
+  getDeathsLeaderboard,
+  getHungryLeaderboard,
+  getMobkillLeaderboard,
+  getPlayerKillsLeaderboard,
+  getPlaytimeLeaderboard,
+  getSleepingLeaderboard,
+  getTop15,
+  getTradingLeaderboard,
+  getBalanceLeaderboard,
+} from "../Controllers/leaderboard";
 
 import {
-    submitPort,
-    getFeed,
-    handlePostLike,
-    handlePostUnLike,
-    getPost,
-    handlePostComment,
-    handleGetComments,
-    handlePostDelete,
-} from '../Controllers/post';
+  submitPort,
+  getFeed,
+  handlePostLike,
+  handlePostUnLike,
+  getPost,
+  handlePostComment,
+  handleGetComments,
+  handlePostDelete,
+} from "../Controllers/post";
 
-import { getStatz } from '../Controllers/statz';
-import { verify } from './auth';
-import { getGallery, handleGalleryDelete, handleGalleryAdd } from '../Controllers/gallery';
-import { handleGetGuide, handleGetGuideList, handleGuidePost, handleGuideFetch } from '../Controllers/guide';
+import { getStatz } from "../Controllers/statz";
+import { verify } from "./auth";
+import {
+  getGallery,
+  handleGalleryDelete,
+  handleGalleryAdd,
+} from "../Controllers/gallery";
+import {
+  handleGetGuide,
+  handleGetGuideList,
+  handleGuidePost,
+  handleGuideFetch,
+} from "../Controllers/guide";
 
 const router = Router();
 
 // Multer Config
-const sanitizeFilename = (name: string) => name.replace(/[^a-z0-9.]/gi, '_').toLowerCase();
+const sanitizeFilename = (name: string) =>
+  name.replace(/[^a-z0-9.]/gi, "_").toLowerCase();
 
-const fileFilter = (req: Request, file: Express.Multer.File, cb: FileFilterCallback) => {
-    const allowed = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-    if (allowed.includes(file.mimetype)) {
-        cb(null, true);
-    } else {
-        cb(null, false);
-    }
+const fileFilter = (
+  req: Request,
+  file: Express.Multer.File,
+  cb: FileFilterCallback,
+) => {
+  const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+  if (allowed.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(null, false);
+  }
 };
 
 const storage = multer.diskStorage({
-    destination: (_req, _file, cb) => {
-        const dir = "public/uploads";
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-        cb(null, dir);
-    },
-    filename: (_req, file, cb) => {
-        cb(null, `${Date.now()}-${sanitizeFilename(file.originalname)}`);
-    },
+  destination: (_req, _file, cb) => {
+    const dir = "public/uploads";
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (_req, file, cb) => {
+    cb(null, `${Date.now()}-${sanitizeFilename(file.originalname)}`);
+  },
 });
 
 const galleryStorage = multer.diskStorage({
-    destination: (req, _file, cb) => {
-        const season = req.params.season?.replace(/[^a-z0-9]/gi, '') || 'misc';
-        const dir = `public/Gallery/${season}`;
-        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-        cb(null, dir);
-    },
-    filename: (_req, file, cb) => {
-        cb(null, `${Date.now()}-${sanitizeFilename(file.originalname)}`);
-    },
+  destination: (req, _file, cb) => {
+    const season = req.params.season?.replace(/[^a-z0-9]/gi, "") || "misc";
+    const dir = `public/Gallery/${season}`;
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (_req, file, cb) => {
+    cb(null, `${Date.now()}-${sanitizeFilename(file.originalname)}`);
+  },
 });
 
-const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } }); // 5MB limit
-const uploadGallery = multer({ storage: galleryStorage, fileFilter, limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 },
+}); // 5MB limit
+const uploadGallery = multer({
+  storage: galleryStorage,
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
 
 // Statz Routes
 router.get("/statz/:username", getStatz);
@@ -104,6 +126,11 @@ router.get("/guides", handleGuideFetch);
 router.get("/feed/:limit", getFeed);
 router.get("/gallery", getGallery);
 router.post("/delete/gallery/:season/:photo", verify, handleGalleryDelete);
-router.post("/add/gallery/:season", verify, uploadGallery.array("photos"), handleGalleryAdd);
+router.post(
+  "/add/gallery/:season",
+  verify,
+  uploadGallery.array("photos"),
+  handleGalleryAdd,
+);
 
 export default router;
