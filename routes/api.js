@@ -22,29 +22,25 @@ const { getStatz } = require("../Controllers/statz");
 
 const { verify } = require("./auth");
 
-const multer = require("multer");
 const path = require("path");
 const { getGallery, handleGalleryDelete, handleGalleryAdd } = require("../Controllers/gallery");
 const { handleGetGuide, handleGetGuideList, handleGuidePost, handleGuideFetch } = require("../Controllers/guide");
 const { getBalanceLeaderboard } = require("../Controllers/leaderboard/balance");
-var storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, "public/uploads");
-    },
-    filename: (req, file, cb) => {
-        cb(null, "" + Date.now().toString() + file.originalname.toString());
-    },
-});
-var galleryStorage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, "public/Gallery/" + req.params.season);
-    },
-    filename: (req, file, cb) => {
-        cb(null, "" + Date.now().toString() + file.originalname.toString());
-    },
-});
-const upload = multer({ storage: storage });
-const uploadGallery = multer({ storage: galleryStorage });
+const {
+    getSupporters,
+    getSupportersByTier,
+    getSupporter,
+    addSupporter,
+    updateSupporter,
+    removeSupporter,
+    bulkImportSupporters,
+} = require("../Controllers/supporter");
+const { uploadPostToS3, uploadGalleryToS3, uploadGuideToS3 } = require("../utils/s3");
+
+// S3 uploaders
+const upload = uploadPostToS3;
+const uploadGallery = uploadGalleryToS3;
+const uploadGuide = uploadGuideToS3;
 
 const router = require("express").Router();
 
@@ -71,12 +67,21 @@ router.post("/post/delete/:id", verify, handlePostDelete);
 
 router.get("/guide/:name", handleGetGuide);
 router.get("/guide", handleGetGuideList);
-router.post("/guide/:name", verify, upload.single("image"), handleGuidePost);
+router.post("/guide/:name", verify, uploadGuide.single("image"), handleGuidePost);
 router.get("/guides", handleGuideFetch);
 router.get("/feed/:limit", getFeed);
 router.get("/gallery", getGallery);
 router.post("/delete/gallery/:season/:photo", verify, handleGalleryDelete);
 
 router.post("/add/gallery/:season", verify, uploadGallery.array("photos"), handleGalleryAdd);
+
+// Supporter routes
+router.get("/supporters", getSupporters);
+router.get("/supporters/tier/:tier", getSupportersByTier);
+router.get("/supporters/:name", getSupporter);
+router.post("/supporters", verify, addSupporter);
+router.put("/supporters/:name", verify, updateSupporter);
+router.delete("/supporters/:name", verify, removeSupporter);
+router.post("/supporters/bulk/import", verify, bulkImportSupporters);
 
 module.exports = router;

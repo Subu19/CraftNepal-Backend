@@ -1,136 +1,316 @@
 const Comment = require("../utils/models/Comments");
 const Post = require("../utils/models/Post");
+const { deleteFromS3, extractKeyFromUrl } = require("../utils/s3");
 
-exports.submitPort = (req, res, next) => {
-    var newPost = new Post();
+exports.submitPort = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        err: true,
+        message: "Image file is required",
+      });
+    }
+
+    const newPost = new Post();
     newPost.id = Date.now();
     newPost.caption = req.body.caption;
-    newPost.postImage = req.file.filename;
+    // Store S3 URL from multer-s3 (req.file.location)
+    newPost.postImage = req.file.location;
     newPost.author = {
-        profilePic: req.user.avatar,
-        username: req.user.username,
-        id: req.user.discordId,
+      profilePic: req.user.avatar,
+      username: req.user.username,
+      id: req.user.discordId,
     };
-    newPost
-        .save()
-        .then(() => {
-            res.send({ message: "Uploaded!" });
-        })
-        .catch((err) => {
-            console.log("Something went wrong during posting" + err);
-            res.send({ err: err });
-        });
+
+    await newPost.save();
+
+    res.status(201).json({
+      err: false,
+      message: "Post uploaded successfully",
+      data: newPost,
+    });
+  } catch (err) {
+    console.error("Error during posting:", err);
+    res.status(500).json({
+      err: true,
+      message: "Failed to upload post",
+    });
+  }
 };
 
 exports.getFeed = async (req, res, next) => {
-    const results = await Post.find({}).sort({ _id: -1 }).limit(req.params.limit);
-    if (results) {
-        res.send(results);
-    } else {
-        res.send({ err: "Something went wrong" });
-    }
+  try {
+    const limit = parseInt(req.params.limit) || 20;
+    const results = await Post.find({})
+      .sort({ _id: -1 })
+      .limit(limit)
+      .populate("comments");
+
+    res.json({
+      err: false,
+      data: results,
+    });
+  } catch (err) {
+    console.error("Error fetching feed:", err);
+    res.status(500).json({
+      err: true,
+      message: "Failed to fetch feed",
+    });
+  }
 };
 
 exports.getPost = async (req, res, next) => {
-    if (req.params.id) {
-        const post = await Post.findById(req.params.id);
-        if (post) {
-            res.send(JSON.stringify(post));
-        } else res.send({ err: "err" });
-    } else {
-        res.send({ err: "err" });
+  try {
+    if (!req.params.id) {
+      return res.status(400).json({
+        err: true,
+        message: "Post ID is required",
+      });
     }
+
+    const post = await Post.findById(req.params.id).populate("comments");
+
+    if (!post) {
+      return res.status(404).json({
+        err: true,
+        message: "Post not found",
+      });
+    }
+
+    res.json({
+      err: false,
+      data: post,
+    });
+  } catch (err) {
+    console.error("Error fetching post:", err);
+    res.status(500).json({
+      err: true,
+      message: "Failed to fetch post",
+    });
+  }
 };
 
 exports.handlePostLike = async (req, res, next) => {
-    console.log(req.body);
+  try {
     if (!req.body.postId) {
-        res.send({ err: "please provide postiD" });
-        return;
+      return res.status(400).json({
+        err: true,
+        message: "Post ID is required",
+      });
     }
 
     const post = await Post.findById(req.body.postId);
 
-    if (!post) return res.send({ err: "Cannot find the post" });
-
-    if (post.likes.find((user) => user.userId == req.user.discordId)) {
-        res.send({ err: "User already liked" });
-    } else {
-        await post.likes.push({
-            username: req.user.username,
-            userId: req.user.discordId,
-            profilePic: req.user.avatar,
-        });
-        await post.save();
-        res.send({ message: "Liked!" });
+    if (!post) {
+      return res.status(404).json({
+        err: true,
+        message: "Post not found",
+      });
     }
+
+    const userAlreadyLiked = post.likes.find(
+      (user) => user.userId == req.user.discordId
+    );
+
+    if (userAlreadyLiked) {
+      return res.status(409).json({
+        err: true,
+        message: "User already liked this post",
+      });
+    }
+
+    await post.likes.push({
+      username: req.user.username,
+      userId: req.user.discordId,
+      profilePic: req.user.avatar,
+    });
+
+    await post.save();
+
+    res.json({
+      err: false,
+      message: "Post liked successfully",
+      data: post,
+    });
+  } catch (err) {
+    console.error("Error liking post:", err);
+    res.status(500).json({
+      err: true,
+      message: "Failed to like post",
+    });
+  }
 };
+
 exports.handlePostUnLike = async (req, res, next) => {
-    console.log(req.body);
-
+  try {
     if (!req.body.postId) {
-        res.send({ err: "please provide postiD" });
-        return;
+      return res.status(400).json({
+        err: true,
+        message: "Post ID is required",
+      });
     }
 
     const post = await Post.findById(req.body.postId);
-    if (!post) return res.send({ err: "Cannot find the post" });
 
-    if (post.likes.find((user) => user.userId == req.user.discordId)) {
-        const updateLikes = await post.likes.filter((user) => user.userId !== req.user.discordId);
-        post.likes = updateLikes;
-        await post.save();
-        console.log(post);
-        res.send({ message: "Unliked!" });
-    } else {
-        res.send({ err: "User hasnt like the post" });
+    if (!post) {
+      return res.status(404).json({
+        err: true,
+        message: "Post not found",
+      });
     }
+
+    const userHasLiked = post.likes.find(
+      (user) => user.userId == req.user.discordId
+    );
+
+    if (!userHasLiked) {
+      return res.status(409).json({
+        err: true,
+        message: "User hasn't liked this post",
+      });
+    }
+
+    post.likes = post.likes.filter((user) => user.userId !== req.user.discordId);
+
+    await post.save();
+
+    res.json({
+      err: false,
+      message: "Post unliked successfully",
+      data: post,
+    });
+  } catch (err) {
+    console.error("Error unliking post:", err);
+    res.status(500).json({
+      err: true,
+      message: "Failed to unlike post",
+    });
+  }
 };
+
 exports.handlePostComment = async (req, res, next) => {
-    if (req.body.comment && req.body.postId) {
-        const post = await Post.findById(req.body.postId);
-        if (post) {
-            var newComment = new Comment();
-            newComment.username = req.user.username;
-            newComment.profilePic = req.user.avatar;
-            newComment.comment = req.body.comment;
-            newComment.discordId = req.user.discordId;
-            newComment.id = Date.now();
-            newComment.isReply = false;
-            await newComment.save();
-            await post.comments.push(newComment);
-            await post.save();
-            console.log(newComment);
-            res.send({ message: "commendted!" });
-        } else res.send({ err: "err" });
-    } else {
-        res.send({ err: "err" });
+  try {
+    if (!req.body.comment || !req.body.postId) {
+      return res.status(400).json({
+        err: true,
+        message: "Comment text and post ID are required",
+      });
     }
+
+    const post = await Post.findById(req.body.postId);
+
+    if (!post) {
+      return res.status(404).json({
+        err: true,
+        message: "Post not found",
+      });
+    }
+
+    const newComment = new Comment();
+    newComment.username = req.user.username;
+    newComment.profilePic = req.user.avatar;
+    newComment.comment = req.body.comment;
+    newComment.discordId = req.user.discordId;
+    newComment.id = Date.now();
+    newComment.isReply = false;
+
+    await newComment.save();
+    await post.comments.push(newComment);
+    await post.save();
+
+    res.status(201).json({
+      err: false,
+      message: "Comment added successfully",
+      data: newComment,
+    });
+  } catch (err) {
+    console.error("Error adding comment:", err);
+    res.status(500).json({
+      err: true,
+      message: "Failed to add comment",
+    });
+  }
 };
+
 exports.handleGetComments = async (req, res, next) => {
-    if (req.params.id) {
-        const post = await (await Post.findOne({ _id: req.params.id })).populate({ path: "comments" });
-        res.send(post);
-    } else res.send({ err: "Please provide postId" });
+  try {
+    if (!req.params.id) {
+      return res.status(400).json({
+        err: true,
+        message: "Post ID is required",
+      });
+    }
+
+    const post = await Post.findById(req.params.id).populate("comments");
+
+    if (!post) {
+      return res.status(404).json({
+        err: true,
+        message: "Post not found",
+      });
+    }
+
+    res.json({
+      err: false,
+      data: post.comments,
+    });
+  } catch (err) {
+    console.error("Error fetching comments:", err);
+    res.status(500).json({
+      err: true,
+      message: "Failed to fetch comments",
+    });
+  }
 };
 
 exports.handlePostDelete = async (req, res, next) => {
-    if (req.params.id) {
-        try {
-            const post = await Post.findOne({ _id: req.params.id });
-            if (post) {
-                if (post.author.id == req.user.discordId || req.user.isAdmin) {
-                    await Post.deleteOne({ _id: req.params.id });
-                    res.send({ message: "Deleted!" });
-                } else {
-                    res.send(404);
-                }
-            } else {
-                res.send(404);
-            }
-        } catch (err) {
-            console.log(err);
-            res.send(404);
-        }
+  try {
+    if (!req.params.id) {
+      return res.status(400).json({
+        err: true,
+        message: "Post ID is required",
+      });
     }
+
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({
+        err: true,
+        message: "Post not found",
+      });
+    }
+
+    // Check if user is author or admin
+    if (post.author.id !== req.user.discordId && !req.user.isAdmin) {
+      return res.status(403).json({
+        err: true,
+        message: "You don't have permission to delete this post",
+      });
+    }
+
+    // Delete image from S3 if it exists
+    if (post.postImage) {
+      try {
+        const s3Key = extractKeyFromUrl(post.postImage) || post.postImage;
+        await deleteFromS3(s3Key);
+      } catch (error) {
+        console.warn("Warning: Failed to delete post image from S3:", error);
+        // Continue anyway, don't fail the deletion
+      }
+    }
+
+    await Post.deleteOne({ _id: req.params.id });
+
+    res.json({
+      err: false,
+      message: "Post deleted successfully",
+    });
+  } catch (err) {
+    console.error("Error deleting post:", err);
+    res.status(500).json({
+      err: true,
+      message: "Failed to delete post",
+    });
+  }
 };
