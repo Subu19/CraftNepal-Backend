@@ -54,6 +54,7 @@ app.use(passport.session());
 app.use(cors(corsConfig));
 app.use(express.static("public"));
 app.get("/", (req, res, next) => {
+  console.log("hi there");
   res.send("Welcome to craftnepal backend");
 });
 
