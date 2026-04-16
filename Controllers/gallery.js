@@ -1,5 +1,6 @@
 const fs = require("fs/promises");
-const { deleteFromS3, extractKeyFromUrl } = require("../utils/s3");
+const { deleteFromS3, extractKeyFromUrl, getCustomDomainUrl } = require("../utils/s3");
+const Gallery = require("../utils/models/Gallery");
 
 const SEASON_COVERS = {
   "Season-3":
@@ -17,44 +18,58 @@ const DEFAULT_COVER =
 
 /**
  * Get all gallery folders organized by season
- * Note: This now requires manually configured seasons since S3 listing would be less efficient
- * You may want to create a MongoDB model to track gallery seasons
+ * Fetches gallery data from MongoDB
  */
 exports.getGallery = async (req, res, next) => {
   try {
-    // For S3, we should store gallery metadata in MongoDB
-    // This is a simple response structure - you'll want to implement MongoDB storage
-    const gallery = [
-      {
-        title: "Season-3",
-        cover: SEASON_COVERS["Season-3"],
-        photos: [],
-        s3Prefix: "gallery/Season-3",
-      },
-      {
-        title: "Season-4",
-        cover: SEASON_COVERS["Season-4"],
-        photos: [],
-        s3Prefix: "gallery/Season-4",
-      },
-      {
-        title: "Season-5",
-        cover: SEASON_COVERS["Season-5"],
-        photos: [],
-        s3Prefix: "gallery/Season-5",
-      },
-      {
-        title: "CraftNepal",
-        cover: SEASON_COVERS["CraftNepal"],
-        photos: [],
-        s3Prefix: "gallery/CraftNepal",
-      },
-    ];
+    const gallery = await Gallery.find({});
+
+    // If no galleries exist, create default seasons
+    if (gallery.length === 0) {
+      const defaultSeasons = [
+        {
+          season: "Season-3",
+          cover: SEASON_COVERS["Season-3"],
+          photos: [],
+        },
+        {
+          season: "Season-4",
+          cover: SEASON_COVERS["Season-4"],
+          photos: [],
+        },
+        {
+          season: "Season-5",
+          cover: SEASON_COVERS["Season-5"],
+          photos: [],
+        },
+        {
+          season: "CraftNepal",
+          cover: SEASON_COVERS["CraftNepal"],
+          photos: [],
+        },
+      ];
+
+      await Gallery.insertMany(defaultSeasons);
+      return res.json({
+        err: false,
+        data: defaultSeasons,
+      });
+    }
+
+    // Transform to response format with custom domain URLs
+    const formattedGallery = gallery.map((g) => ({
+      title: g.season,
+      cover: g.cover,
+      photos: g.photos.map((photo) => ({
+        ...photo.toObject ? photo.toObject() : photo,
+        url: getCustomDomainUrl(photo.key),
+      })),
+      s3Prefix: `gallery/${g.season}`,
+    }));
 
     res.json({
       err: false,
-      data: gallery,
-      note: "Photo URLs are generated on upload and stored in S3. Use the s3Prefix to construct S3 URLs.",
+      data: formattedGallery,
     });
   } catch (err) {
     console.error("Error fetching gallery:", err);
@@ -89,7 +104,14 @@ exports.handleGalleryDelete = async (req, res, next) => {
       s3Key = `gallery/${season}/${photo}`;
     }
 
+    // Delete from S3
     await deleteFromS3(s3Key);
+
+    // Delete from MongoDB
+    await Gallery.updateOne(
+      { season: season },
+      { $pull: { photos: { key: s3Key } } }
+    );
 
     res.json({
       err: false,
@@ -106,7 +128,7 @@ exports.handleGalleryDelete = async (req, res, next) => {
 
 /**
  * Add photos to the gallery
- * Files are uploaded to S3 via multer-s3
+ * Files are uploaded to S3 via multer-s3, metadata is saved to MongoDB
  */
 exports.handleGalleryAdd = async (req, res, next) => {
   try {
@@ -124,19 +146,37 @@ exports.handleGalleryAdd = async (req, res, next) => {
       });
     }
 
-    // Extract URLs from uploaded files
+    const season = req.params.season || "general";
+
+    // Extract URLs from uploaded files and transform to custom domain
     const uploadedPhotos = req.files.map((file) => ({
-      url: file.location,
+      url: file.location, // Store original S3 URL in DB
       key: file.key,
       name: file.originalname,
       size: file.size,
       uploadedAt: new Date(),
     }));
 
+    // Save to MongoDB
+    const gallery = await Gallery.findOneAndUpdate(
+      { season: season },
+      {
+        $push: { photos: { $each: uploadedPhotos } },
+        $set: { updatedAt: new Date() },
+      },
+      { upsert: true, new: true }
+    );
+
+    // Transform URLs for response
+    const responsePhotos = uploadedPhotos.map((photo) => ({
+      ...photo,
+      url: getCustomDomainUrl(photo.key),
+    }));
+
     res.json({
       err: false,
-      message: `Successfully uploaded ${uploadedPhotos.length} photo(s) to S3`,
-      data: uploadedPhotos,
+      message: `Successfully uploaded ${uploadedPhotos.length} photo(s) to S3 and saved to database`,
+      data: responsePhotos,
     });
   } catch (err) {
     console.error("Error adding gallery photos:", err);

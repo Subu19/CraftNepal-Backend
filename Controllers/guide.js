@@ -1,14 +1,19 @@
 const fs = require("fs/promises");
 const Guide = require("../utils/models/Guide");
-const { deleteFromS3, extractKeyFromUrl } = require("../utils/s3");
+const { deleteFromS3, extractKeyFromUrl, getCustomDomainUrl } = require("../utils/s3");
 
 exports.handleGetGuide = async (req, res, next) => {
   try {
     const guide = await Guide.findOne({ id: req.params.name });
     if (guide) {
+      // Transform URL for response
+      const guideData = guide.toObject();
+      if (guideData.image) {
+        guideData.image = getCustomDomainUrl(guideData.imageKey);
+      }
       res.json({
         err: false,
-        data: guide,
+        data: guideData,
       });
     } else {
       res.status(404).json({
@@ -44,9 +49,17 @@ exports.handleGetGuideList = async (req, res, next) => {
 exports.handleGuideFetch = async (req, res, next) => {
   try {
     const guides = await Guide.find({});
+    // Transform URLs for response
+    const transformedGuides = guides.map((guide) => {
+      const guideData = guide.toObject();
+      if (guideData.image) {
+        guideData.image = getCustomDomainUrl(guideData.imageKey);
+      }
+      return guideData;
+    });
     res.json({
       err: false,
-      data: guides,
+      data: transformedGuides,
     });
   } catch (error) {
     console.error("Error fetching guides:", error);
@@ -73,10 +86,9 @@ exports.handleGuidePost = async (req, res, next) => {
     const existingGuide = await Guide.findOne({ id: guideName });
 
     // Delete old image from S3 if a new one is being uploaded and old guide exists
-    if (existingGuide && existingGuide.image && req.file) {
+    if (existingGuide && existingGuide.imageKey && req.file) {
       try {
-        const oldKey = extractKeyFromUrl(existingGuide.image) || existingGuide.image;
-        await deleteFromS3(oldKey);
+        await deleteFromS3(existingGuide.imageKey);
       } catch (error) {
         console.warn("Warning: Failed to delete old guide image:", error);
         // Continue anyway, don't fail the upload
@@ -89,9 +101,10 @@ exports.handleGuidePost = async (req, res, next) => {
       data: data.data ? JSON.parse(data.data) : [],
     };
 
-    // Add image URL if file was uploaded (multer-s3 provides location)
+    // Add image URL and key if file was uploaded (multer-s3 provides location and key)
     if (req.file) {
       updateData.image = req.file.location;
+      updateData.imageKey = req.file.key;
     }
 
     let guide;
@@ -104,10 +117,16 @@ exports.handleGuidePost = async (req, res, next) => {
       await guide.save();
     }
 
+    // Transform URL for response
+    const guideData = guide.toObject();
+    if (guideData.image) {
+      guideData.image = getCustomDomainUrl(guideData.imageKey);
+    }
+
     res.status(201).json({
       err: false,
       message: "Guide saved successfully",
-      data: guide,
+      data: guideData,
     });
   } catch (error) {
     console.error("Error posting guide:", error);

@@ -17,6 +17,7 @@ const s3 = new AWS.S3({
 });
 
 const bucketName = process.env.AWS_S3_BUCKET_NAME;
+const assetsDomain = process.env.AWS_ASSETS_DOMAIN || "assets.example.com";
 
 /**
  * Generate a safe S3 key for file uploads
@@ -162,30 +163,55 @@ async function deleteFromS3(key) {
 }
 
 /**
- * Extract S3 key from full S3 URL
+ * Extract S3 key from full S3 URL (supports both AWS and Cloudflare R2)
  * @param {string} url - Full S3 URL
  * @returns {string} - S3 key
  */
 function extractKeyFromUrl(url) {
   if (!url) return null;
-  // URL format: https://bucket.s3.region.amazonaws.com/key
-  // or https://bucket.s3.amazonaws.com/key
-  const urlParts = url.split(".amazonaws.com/");
+  
+  // Try to extract from Cloudflare R2 URL format: https://accountid.r2.cloudflarestorage.com/key
+  let urlParts = url.split(".r2.cloudflarestorage.com/");
   if (urlParts.length === 2) {
     return urlParts[1];
   }
+  
+  // Try to extract from custom domain URL format: https://domain/key
+  // This handles our custom domain: website.assets.craftnepal.net/key
+  const urlObj = new URL(url);
+  const pathname = urlObj.pathname.substring(1); // Remove leading slash
+  if (pathname) {
+    return pathname;
+  }
+  
+  // Fallback: try AWS S3 format
+  urlParts = url.split(".amazonaws.com/");
+  if (urlParts.length === 2) {
+    return urlParts[1];
+  }
+  
   return null;
 }
 
 /**
  * Get S3 URL from file object (multer-s3 provides location property)
  * @param {object} file - Multer file object
- * @returns {string} - S3 URL
+ * @returns {string} - Custom domain URL
  */
 function getFileUrl(file) {
   if (!file) return null;
-  // multer-s3 provides location property with the full S3 URL
-  return file.location || null;
+  // multer-s3 provides key property with the S3 key
+  return getCustomDomainUrl(file.key);
+}
+
+/**
+ * Transform S3 key to custom domain URL
+ * @param {string} key - S3 key (e.g., "gallery/Season-3/1776362295616-r5550b.png")
+ * @returns {string} - Custom domain URL
+ */
+function getCustomDomainUrl(key) {
+  if (!key) return null;
+  return `https://${assetsDomain}/${key}`;
 }
 
 module.exports = {
@@ -196,5 +222,6 @@ module.exports = {
   deleteFromS3,
   extractKeyFromUrl,
   getFileUrl,
+  getCustomDomainUrl,
   generateS3Key,
 };

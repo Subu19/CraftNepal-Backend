@@ -1,6 +1,6 @@
 const Comment = require("../utils/models/Comments");
 const Post = require("../utils/models/Post");
-const { deleteFromS3, extractKeyFromUrl } = require("../utils/s3");
+const { deleteFromS3, extractKeyFromUrl, getCustomDomainUrl } = require("../utils/s3");
 
 exports.submitPort = async (req, res, next) => {
   try {
@@ -14,8 +14,9 @@ exports.submitPort = async (req, res, next) => {
     const newPost = new Post();
     newPost.id = Date.now();
     newPost.caption = req.body.caption;
-    // Store S3 URL from multer-s3 (req.file.location)
+    // Store S3 URL and key from multer-s3
     newPost.postImage = req.file.location;
+    newPost.postImageKey = req.file.key;
     newPost.author = {
       profilePic: req.user.avatar,
       username: req.user.username,
@@ -24,10 +25,14 @@ exports.submitPort = async (req, res, next) => {
 
     await newPost.save();
 
+    // Transform URL for response
+    const postData = newPost.toObject();
+    postData.postImage = getCustomDomainUrl(postData.postImageKey);
+
     res.status(201).json({
       err: false,
       message: "Post uploaded successfully",
-      data: newPost,
+      data: postData,
     });
   } catch (err) {
     console.error("Error during posting:", err);
@@ -46,9 +51,16 @@ exports.getFeed = async (req, res, next) => {
       .limit(limit)
       .populate("comments");
 
+    // Transform URLs for response
+    const transformedResults = results.map((post) => {
+      const postData = post.toObject();
+      postData.postImage = getCustomDomainUrl(postData.postImageKey);
+      return postData;
+    });
+
     res.json({
       err: false,
-      data: results,
+      data: transformedResults,
     });
   } catch (err) {
     console.error("Error fetching feed:", err);
@@ -77,9 +89,13 @@ exports.getPost = async (req, res, next) => {
       });
     }
 
+    // Transform URL for response
+    const postData = post.toObject();
+    postData.postImage = getCustomDomainUrl(postData.postImageKey);
+
     res.json({
       err: false,
-      data: post,
+      data: postData,
     });
   } catch (err) {
     console.error("Error fetching post:", err);
@@ -127,10 +143,14 @@ exports.handlePostLike = async (req, res, next) => {
 
     await post.save();
 
+    // Transform URL for response
+    const postData = post.toObject();
+    postData.postImage = getCustomDomainUrl(postData.postImageKey);
+
     res.json({
       err: false,
       message: "Post liked successfully",
-      data: post,
+      data: postData,
     });
   } catch (err) {
     console.error("Error liking post:", err);
@@ -174,10 +194,14 @@ exports.handlePostUnLike = async (req, res, next) => {
 
     await post.save();
 
+    // Transform URL for response
+    const postData = post.toObject();
+    postData.postImage = getCustomDomainUrl(postData.postImageKey);
+
     res.json({
       err: false,
       message: "Post unliked successfully",
-      data: post,
+      data: postData,
     });
   } catch (err) {
     console.error("Error unliking post:", err);
