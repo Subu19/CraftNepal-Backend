@@ -66,6 +66,10 @@ app.use("/auth", authRouter);
 //api
 app.use("/api", apiRouter);
 
+//start stats aggregator (runs immediately, then every 60s)
+import { statsAggregator } from "./utils/statsAggregator";
+statsAggregator.start(60_000);
+
 //start socket
 const server = http.createServer(app);
 const io = new Server(server, { cors: corsConfig });
