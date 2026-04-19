@@ -20,11 +20,23 @@ interface FeaturedStatDef {
 }
 
 const FEATURED_STATS: FeaturedStatDef[] = [
-  { key: "minecraft:custom/minecraft:play_time", label: "Play Time", unit: "ticks" },
+  {
+    key: "minecraft:custom/minecraft:play_time",
+    label: "Play Time",
+    unit: "ticks",
+  },
   { key: "minecraft:custom/minecraft:mob_kills", label: "Mob Kills" },
   { key: "minecraft:custom/minecraft:deaths", label: "Deaths" },
-  { key: "minecraft:custom/minecraft:walk_one_cm", label: "Distance Walked", unit: "cm" },
-  { key: "minecraft:custom/minecraft:fly_one_cm", label: "Distance Flown", unit: "cm" },
+  {
+    key: "minecraft:custom/minecraft:walk_one_cm",
+    label: "Distance Walked",
+    unit: "cm",
+  },
+  {
+    key: "minecraft:custom/minecraft:fly_one_cm",
+    label: "Distance Flown",
+    unit: "cm",
+  },
   { key: "minecraft:custom/minecraft:jump", label: "Jumps" },
   { key: "minecraft:custom/minecraft:damage_dealt", label: "Damage Dealt" },
   { key: "minecraft:custom/minecraft:leave_game", label: "Times Logged Out" },
@@ -138,8 +150,14 @@ class StatsAggregator {
           nameToUuid.set(name.toLowerCase(), uuid);
 
           // Compute aggregate values for this player
-          const totalMined = Object.values(summary.stats.mined).reduce((a, b) => a + b, 0);
-          const totalKilled = Object.values(summary.stats.killed).reduce((a, b) => a + b, 0);
+          const totalMined = Object.values(summary.stats.mined).reduce(
+            (a, b) => a + b,
+            0,
+          );
+          const totalKilled = Object.values(summary.stats.killed).reduce(
+            (a, b) => a + b,
+            0,
+          );
           aggregateTotalMined.set(uuid, totalMined);
           aggregateTotalKilled.set(uuid, totalKilled);
         } catch (err) {
@@ -148,7 +166,11 @@ class StatsAggregator {
       }
 
       // 3. Build leaderboards for every stat key
-      const leaderboards = this.buildLeaderboards(summaries, allStatKeys, uuidToName);
+      const leaderboards = this.buildLeaderboards(
+        summaries,
+        allStatKeys,
+        uuidToName,
+      );
 
       // 4. Add aggregate leaderboards
       leaderboards.set(
@@ -289,7 +311,17 @@ class StatsAggregator {
       uuid,
       name,
       overview,
-      stats: { custom, mined, used, picked_up, dropped, killed, killed_by, crafted, broken },
+      stats: {
+        custom,
+        mined,
+        used,
+        picked_up,
+        dropped,
+        killed,
+        killed_by,
+        crafted,
+        broken,
+      },
     };
   }
 
@@ -306,7 +338,10 @@ class StatsAggregator {
 
       for (const [uuid, summary] of summaries) {
         // Map category to the summary field
-        const categoryKey = category.replace("minecraft:", "") as keyof PlayerSummary["stats"];
+        const categoryKey = category.replace(
+          "minecraft:",
+          "",
+        ) as keyof PlayerSummary["stats"];
         const categoryStats = summary.stats[categoryKey];
         if (categoryStats && stat in categoryStats) {
           entries.push({
@@ -321,7 +356,12 @@ class StatsAggregator {
       entries.sort((a, b) => b.value - a.value);
       const ranked: LeaderboardEntry[] = entries
         .slice(0, LEADERBOARD_LIMIT)
-        .map((e, i) => ({ rank: i + 1, uuid: e.uuid, name: e.name, value: e.value }));
+        .map((e, i) => ({
+          rank: i + 1,
+          uuid: e.uuid,
+          name: e.name,
+          value: e.value,
+        }));
 
       if (ranked.length > 0) {
         leaderboards.set(compositeKey, ranked);
@@ -349,7 +389,9 @@ class StatsAggregator {
     return entries;
   }
 
-  private buildOverview(leaderboards: Map<string, LeaderboardEntry[]>): FeaturedLeaderboard[] {
+  private buildOverview(
+    leaderboards: Map<string, LeaderboardEntry[]>,
+  ): FeaturedLeaderboard[] {
     const overview: FeaturedLeaderboard[] = [];
 
     for (const def of FEATURED_STATS) {
@@ -378,7 +420,10 @@ class StatsAggregator {
     }
 
     // Sort by category then stat
-    keys.sort((a, b) => a.category.localeCompare(b.category) || a.stat.localeCompare(b.stat));
+    keys.sort(
+      (a, b) =>
+        a.category.localeCompare(b.category) || a.stat.localeCompare(b.stat),
+    );
 
     return keys;
   }
