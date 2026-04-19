@@ -1,6 +1,9 @@
-const mongoose = require("mongoose");
+import mongoose, { Schema, Document } from "mongoose";
+import { ISupporter } from "../../dto/models";
 
-const SupporterSchema = new mongoose.Schema(
+export interface ISupporterModel extends ISupporter, Document {}
+
+const SupporterSchema = new Schema<ISupporterModel>(
   {
     name: {
       type: String,
@@ -35,4 +38,4 @@ const SupporterSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Supporter", SupporterSchema);
+export const Supporter = mongoose.model<ISupporterModel>("Supporter", SupporterSchema);

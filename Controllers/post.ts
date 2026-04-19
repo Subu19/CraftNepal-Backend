@@ -1,8 +1,9 @@
-const Comment = require("../utils/models/Comments");
-const Post = require("../utils/models/Post");
-const { deleteFromS3, extractKeyFromUrl, getCustomDomainUrl } = require("../utils/s3");
+import { Request, Response, NextFunction } from "express";
+import { Comment } from "../utils/models/Comments";
+import { Post } from "../utils/models/Post";
+import { deleteFromS3, extractKeyFromUrl, getCustomDomainUrl } from "../utils/s3";
 
-exports.submitPort = async (req, res, next) => {
+export const submitPort = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -15,19 +16,19 @@ exports.submitPort = async (req, res, next) => {
     newPost.id = Date.now();
     newPost.caption = req.body.caption;
     // Store S3 URL and key from multer-s3
-    newPost.postImage = req.file.location;
-    newPost.postImageKey = req.file.key;
+    newPost.postImage = (req.file as any).location;
+    newPost.postImageKey = (req.file as any).key;
     newPost.author = {
-      profilePic: req.user.avatar,
-      username: req.user.username,
-      id: req.user.discordId,
+      profilePic: (req.user as any).avatar,
+      username: (req.user as any).username,
+      id: (req.user as any).discordId,
     };
 
     await newPost.save();
 
     // Transform URL for response
     const postData = newPost.toObject();
-    postData.postImage = getCustomDomainUrl(postData.postImageKey);
+    postData.postImage = getCustomDomainUrl(postData.postImageKey as string) as string;
 
     res.status(201).json({
       err: false,
@@ -43,7 +44,7 @@ exports.submitPort = async (req, res, next) => {
   }
 };
 
-exports.getFeed = async (req, res, next) => {
+export const getFeed = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const limit = parseInt(req.params.limit) || 20;
     const results = await Post.find({})
@@ -54,7 +55,7 @@ exports.getFeed = async (req, res, next) => {
     // Transform URLs for response
     const transformedResults = results.map((post) => {
       const postData = post.toObject();
-      postData.postImage = getCustomDomainUrl(postData.postImageKey);
+      postData.postImage = getCustomDomainUrl(postData.postImageKey as string) as string;
       return postData;
     });
 
@@ -71,7 +72,7 @@ exports.getFeed = async (req, res, next) => {
   }
 };
 
-exports.getPost = async (req, res, next) => {
+export const getPost = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.params.id) {
       return res.status(400).json({
@@ -91,7 +92,7 @@ exports.getPost = async (req, res, next) => {
 
     // Transform URL for response
     const postData = post.toObject();
-    postData.postImage = getCustomDomainUrl(postData.postImageKey);
+    postData.postImage = getCustomDomainUrl(postData.postImageKey as string) as string;
 
     res.json({
       err: false,
@@ -106,7 +107,7 @@ exports.getPost = async (req, res, next) => {
   }
 };
 
-exports.handlePostLike = async (req, res, next) => {
+export const handlePostLike = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.body.postId) {
       return res.status(400).json({
@@ -124,8 +125,8 @@ exports.handlePostLike = async (req, res, next) => {
       });
     }
 
-    const userAlreadyLiked = post.likes.find(
-      (user) => user.userId == req.user.discordId
+    const userAlreadyLiked = post.likes!.find(
+      (user: any) => user.userId == (req.user as any).discordId
     );
 
     if (userAlreadyLiked) {
@@ -135,17 +136,17 @@ exports.handlePostLike = async (req, res, next) => {
       });
     }
 
-    await post.likes.push({
-      username: req.user.username,
-      userId: req.user.discordId,
-      profilePic: req.user.avatar,
+    await (post as any).likes.push({
+      username: (req.user as any).username,
+      userId: (req.user as any).discordId,
+      profilePic: (req.user as any).avatar,
     });
 
     await post.save();
 
     // Transform URL for response
     const postData = post.toObject();
-    postData.postImage = getCustomDomainUrl(postData.postImageKey);
+    postData.postImage = getCustomDomainUrl(postData.postImageKey as string) as string;
 
     res.json({
       err: false,
@@ -161,7 +162,7 @@ exports.handlePostLike = async (req, res, next) => {
   }
 };
 
-exports.handlePostUnLike = async (req, res, next) => {
+export const handlePostUnLike = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.body.postId) {
       return res.status(400).json({
@@ -179,8 +180,8 @@ exports.handlePostUnLike = async (req, res, next) => {
       });
     }
 
-    const userHasLiked = post.likes.find(
-      (user) => user.userId == req.user.discordId
+    const userHasLiked = post.likes!.find(
+      (user: any) => user.userId == (req.user as any).discordId
     );
 
     if (!userHasLiked) {
@@ -190,13 +191,13 @@ exports.handlePostUnLike = async (req, res, next) => {
       });
     }
 
-    post.likes = post.likes.filter((user) => user.userId !== req.user.discordId);
+    (post as any).likes = post.likes!.filter((user: any) => user.userId !== (req.user as any).discordId);
 
     await post.save();
 
     // Transform URL for response
     const postData = post.toObject();
-    postData.postImage = getCustomDomainUrl(postData.postImageKey);
+    postData.postImage = getCustomDomainUrl(postData.postImageKey as string) as string;
 
     res.json({
       err: false,
@@ -212,7 +213,7 @@ exports.handlePostUnLike = async (req, res, next) => {
   }
 };
 
-exports.handlePostComment = async (req, res, next) => {
+export const handlePostComment = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.body.comment || !req.body.postId) {
       return res.status(400).json({
@@ -231,15 +232,15 @@ exports.handlePostComment = async (req, res, next) => {
     }
 
     const newComment = new Comment();
-    newComment.username = req.user.username;
-    newComment.profilePic = req.user.avatar;
+    newComment.username = (req.user as any).username;
+    newComment.profilePic = (req.user as any).avatar;
     newComment.comment = req.body.comment;
-    newComment.discordId = req.user.discordId;
+    newComment.discordId = (req.user as any).discordId;
     newComment.id = Date.now();
     newComment.isReply = false;
 
     await newComment.save();
-    await post.comments.push(newComment);
+    await (post as any).comments.push(newComment._id);
     await post.save();
 
     res.status(201).json({
@@ -256,7 +257,7 @@ exports.handlePostComment = async (req, res, next) => {
   }
 };
 
-exports.handleGetComments = async (req, res, next) => {
+export const handleGetComments = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.params.id) {
       return res.status(400).json({
@@ -287,7 +288,7 @@ exports.handleGetComments = async (req, res, next) => {
   }
 };
 
-exports.handlePostDelete = async (req, res, next) => {
+export const handlePostDelete = async (req: Request, res: Response, next: NextFunction) => {
   try {
     if (!req.params.id) {
       return res.status(400).json({
@@ -306,7 +307,7 @@ exports.handlePostDelete = async (req, res, next) => {
     }
 
     // Check if user is author or admin
-    if (post.author.id !== req.user.discordId && !req.user.isAdmin) {
+    if (post.author.id !== (req.user as any).discordId && !(req.user as any).isAdmin) {
       return res.status(403).json({
         err: true,
         message: "You don't have permission to delete this post",

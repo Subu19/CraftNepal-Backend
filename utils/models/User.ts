@@ -1,5 +1,9 @@
-const mongoose = require("mongoose");
-const UserSchema = new mongoose.Schema({
+import mongoose, { Schema, Document } from "mongoose";
+import { IUser } from "../../dto/models";
+
+export interface IUserModel extends IUser, Document {}
+
+const UserSchema = new Schema<IUserModel>({
   discordId: {
     type: String,
     required: true,
@@ -21,4 +25,4 @@ const UserSchema = new mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("User", UserSchema);
+export const User = mongoose.model<IUserModel>("User", UserSchema);

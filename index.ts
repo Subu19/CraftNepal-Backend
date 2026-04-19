@@ -1,23 +1,25 @@
-require("./utils/strategies/discord");
-const express = require("express");
-const bodyParser = require("body-parser");
+import "./utils/strategies/discord";
+import express, { Request, Response, NextFunction } from "express";
+import bodyParser from "body-parser";
 
-const router = require("./routes/api");
+import apiRouter from "./routes/api";
+import cors from "cors";
+import { authRouter } from "./routes/auth";
+import dotenv from "dotenv";
+import { mongoDB } from "./utils/connection";
+import passport from "passport";
+import session from "express-session";
+import MongoStore from "connect-mongo";
+import { Server } from "socket.io";
+import http from "node:http";
+
+dotenv.config();
+
 const app = express();
-const cors = require("cors");
-const bcrypt = require("bcrypt");
-const { authRouter } = require("./routes/auth");
-require("dotenv").config();
-const { con, mongoDB } = require("./utils/connection");
-const passport = require("passport");
-const session = require("express-session");
-const MongoStore = require("connect-mongo");
-const socket = require("socket.io");
-const http = require("node:http");
 
 const corsConfig = {
   origin: [
-    process.env.FRONTEND,
+    process.env.FRONTEND as string,
     "https://craftnepal.net",
     "http://play.craftnepal.net",
     "http://52.187.54.155",
@@ -48,12 +50,13 @@ app.use(
 );
 
 app.use(express.json());
-app.use(bodyParser.urlencoded());
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(cors(corsConfig));
 app.use(express.static("public"));
-app.get("/", (req, res, next) => {
+
+app.get("/", (req: Request, res: Response, next: NextFunction) => {
   console.log("hi there");
   res.send("Welcome to craftnepal backend");
 });
@@ -61,12 +64,13 @@ app.get("/", (req, res, next) => {
 app.use("/auth", authRouter);
 
 //api
-app.use("/api", router);
+app.use("/api", apiRouter);
 
 //start socket
 const server = http.createServer(app);
-const io = socket(server);
-const socketContainner = require("./Controllers/socket")(io);
+const io = new Server(server, { cors: corsConfig });
+import socketHandler from "./Controllers/socket";
+socketHandler(io);
 
 server.listen(process.env.PORT || 3006, () => {
   console.log("Server started");

@@ -1,15 +1,16 @@
-const fs = require("fs/promises");
-const Guide = require("../utils/models/Guide");
-const { deleteFromS3, extractKeyFromUrl, getCustomDomainUrl } = require("../utils/s3");
+import { Request, Response, NextFunction } from "express";
+import fs from "fs/promises";
+import { Guide } from "../utils/models/Guide";
+import { deleteFromS3, extractKeyFromUrl, getCustomDomainUrl } from "../utils/s3";
 
-exports.handleGetGuide = async (req, res, next) => {
+export const handleGetGuide = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const guide = await Guide.findOne({ id: req.params.name });
     if (guide) {
       // Transform URL for response
       const guideData = guide.toObject();
       if (guideData.image) {
-        guideData.image = getCustomDomainUrl(guideData.imageKey);
+        guideData.image = getCustomDomainUrl(guideData.imageKey as string) as string;
       }
       res.json({
         err: false,
@@ -30,7 +31,7 @@ exports.handleGetGuide = async (req, res, next) => {
   }
 };
 
-exports.handleGetGuideList = async (req, res, next) => {
+export const handleGetGuideList = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const guides = await Guide.find({}, "id");
     res.json({
@@ -46,14 +47,14 @@ exports.handleGetGuideList = async (req, res, next) => {
   }
 };
 
-exports.handleGuideFetch = async (req, res, next) => {
+export const handleGuideFetch = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const guides = await Guide.find({});
     // Transform URLs for response
     const transformedGuides = guides.map((guide) => {
       const guideData = guide.toObject();
       if (guideData.image) {
-        guideData.image = getCustomDomainUrl(guideData.imageKey);
+        guideData.image = getCustomDomainUrl(guideData.imageKey as string) as string;
       }
       return guideData;
     });
@@ -70,9 +71,9 @@ exports.handleGuideFetch = async (req, res, next) => {
   }
 };
 
-exports.handleGuidePost = async (req, res, next) => {
+export const handleGuidePost = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (!req.user?.isAdmin) {
+    if (!(req.user as any)?.isAdmin) {
       return res.status(403).json({
         err: true,
         message: "Only admins can create/update guides",
@@ -95,7 +96,7 @@ exports.handleGuidePost = async (req, res, next) => {
       }
     }
 
-    let updateData = {
+    let updateData: any = {
       id: guideName,
       header: data.header,
       data: data.data ? JSON.parse(data.data) : [],
@@ -103,8 +104,8 @@ exports.handleGuidePost = async (req, res, next) => {
 
     // Add image URL and key if file was uploaded (multer-s3 provides location and key)
     if (req.file) {
-      updateData.image = req.file.location;
-      updateData.imageKey = req.file.key;
+      updateData.image = (req.file as any).location;
+      updateData.imageKey = (req.file as any).key;
     }
 
     let guide;
@@ -118,9 +119,9 @@ exports.handleGuidePost = async (req, res, next) => {
     }
 
     // Transform URL for response
-    const guideData = guide.toObject();
+    const guideData = guide!.toObject();
     if (guideData.image) {
-      guideData.image = getCustomDomainUrl(guideData.imageKey);
+      guideData.image = getCustomDomainUrl(guideData.imageKey as string) as string;
     }
 
     res.status(201).json({

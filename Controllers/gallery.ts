@@ -1,6 +1,7 @@
-const fs = require("fs/promises");
-const { deleteFromS3, extractKeyFromUrl, getCustomDomainUrl } = require("../utils/s3");
-const Gallery = require("../utils/models/Gallery");
+import { Request, Response, NextFunction } from "express";
+import fs from "fs/promises";
+import { deleteFromS3, extractKeyFromUrl, getCustomDomainUrl } from "../utils/s3";
+import { Gallery } from "../utils/models/Gallery";
 
 const SEASON_COVERS = {
   "Season-3":
@@ -20,7 +21,7 @@ const DEFAULT_COVER =
  * Get all gallery folders organized by season
  * Fetches gallery data from MongoDB
  */
-exports.getGallery = async (req, res, next) => {
+export const getGallery = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const gallery = await Gallery.find({});
 
@@ -60,7 +61,7 @@ exports.getGallery = async (req, res, next) => {
     const formattedGallery = gallery.map((g) => ({
       title: g.season,
       cover: g.cover,
-      photos: g.photos.map((photo) => ({
+      photos: g.photos.map((photo: any) => ({
         ...photo.toObject ? photo.toObject() : photo,
         url: getCustomDomainUrl(photo.key),
       })),
@@ -84,9 +85,9 @@ exports.getGallery = async (req, res, next) => {
  * Delete a photo from the gallery
  * Note: Expects the photo parameter to be the full S3 URL or the S3 key
  */
-exports.handleGalleryDelete = async (req, res, next) => {
+export const handleGalleryDelete = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (!req.user?.isAdmin) {
+    if (!(req.user as any)?.isAdmin) {
       return res.status(403).json({
         err: true,
         message: "Only admins can delete gallery photos",
@@ -130,9 +131,9 @@ exports.handleGalleryDelete = async (req, res, next) => {
  * Add photos to the gallery
  * Files are uploaded to S3 via multer-s3, metadata is saved to MongoDB
  */
-exports.handleGalleryAdd = async (req, res, next) => {
+export const handleGalleryAdd = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    if (!req.user?.isAdmin) {
+    if (!(req.user as any)?.isAdmin) {
       return res.status(403).json({
         err: true,
         message: "Only admins can add gallery photos",
@@ -149,7 +150,7 @@ exports.handleGalleryAdd = async (req, res, next) => {
     const season = req.params.season || "general";
 
     // Extract URLs from uploaded files and transform to custom domain
-    const uploadedPhotos = req.files.map((file) => ({
+    const uploadedPhotos = (req.files as any[]).map((file: any) => ({
       url: file.location, // Store original S3 URL in DB
       key: file.key,
       name: file.originalname,
@@ -168,7 +169,7 @@ exports.handleGalleryAdd = async (req, res, next) => {
     );
 
     // Transform URLs for response
-    const responsePhotos = uploadedPhotos.map((photo) => ({
+    const responsePhotos = uploadedPhotos.map((photo: any) => ({
       ...photo,
       url: getCustomDomainUrl(photo.key),
     }));

@@ -1,10 +1,11 @@
-const Supporter = require("../utils/models/Supporter");
+import { Request, Response } from "express";
+import { Supporter } from "../utils/models/Supporter";
 
 /**
  * Get all supporters
  * @route GET /api/supporters
  */
-exports.getSupporters = async (req, res) => {
+export const getSupporters = async (req: Request, res: Response) => {
   try {
     const supporters = await Supporter.find({ isActive: true }).sort({
       tier: 1,
@@ -27,7 +28,7 @@ exports.getSupporters = async (req, res) => {
  * Get supporters by tier
  * @route GET /api/supporters/tier/:tier
  */
-exports.getSupportersByTier = async (req, res) => {
+export const getSupportersByTier = async (req: Request, res: Response) => {
   try {
     const { tier } = req.params;
     const validTiers = ["bronze", "silver", "gold", "diamond"];
@@ -60,7 +61,7 @@ exports.getSupportersByTier = async (req, res) => {
  * Get single supporter by name
  * @route GET /api/supporters/:name
  */
-exports.getSupporter = async (req, res) => {
+export const getSupporter = async (req: Request, res: Response) => {
   try {
     const { name } = req.params;
     const supporter = await Supporter.findOne({ name });
@@ -90,9 +91,9 @@ exports.getSupporter = async (req, res) => {
  * @route POST /api/supporters
  * @body { name, tier?, discordId?, description?, profileUrl? }
  */
-exports.addSupporter = async (req, res) => {
+export const addSupporter = async (req: Request, res: Response) => {
   try {
-    if (!req.user?.isAdmin) {
+    if (!(req.user as any)?.isAdmin) {
       return res.status(403).json({
         err: true,
         message: "Only admins can add supporters",
@@ -158,9 +159,9 @@ exports.addSupporter = async (req, res) => {
  * @route PUT /api/supporters/:name
  * @body { tier?, discordId?, description?, profileUrl?, isActive? }
  */
-exports.updateSupporter = async (req, res) => {
+export const updateSupporter = async (req: Request, res: Response) => {
   try {
-    if (!req.user?.isAdmin) {
+    if (!(req.user as any)?.isAdmin) {
       return res.status(403).json({
         err: true,
         message: "Only admins can update supporters",
@@ -217,9 +218,9 @@ exports.updateSupporter = async (req, res) => {
  * Remove supporter (Admin only)
  * @route DELETE /api/supporters/:name
  */
-exports.removeSupporter = async (req, res) => {
+export const removeSupporter = async (req: Request, res: Response) => {
   try {
-    if (!req.user?.isAdmin) {
+    if (!(req.user as any)?.isAdmin) {
       return res.status(403).json({
         err: true,
         message: "Only admins can remove supporters",
@@ -255,9 +256,9 @@ exports.removeSupporter = async (req, res) => {
  * @route POST /api/supporters/bulk/import
  * @body { supporters: [{ name, tier?, discordId?, description?, profileUrl? }] }
  */
-exports.bulkImportSupporters = async (req, res) => {
+export const bulkImportSupporters = async (req: Request, res: Response) => {
   try {
-    if (!req.user?.isAdmin) {
+    if (!(req.user as any)?.isAdmin) {
       return res.status(403).json({
         err: true,
         message: "Only admins can import supporters",
@@ -273,7 +274,7 @@ exports.bulkImportSupporters = async (req, res) => {
       });
     }
 
-    const results = {
+    const results: { added: number; failed: number; errors: { supporter: string; error: string }[] } = {
       added: 0,
       failed: 0,
       errors: [],
@@ -326,7 +327,7 @@ exports.bulkImportSupporters = async (req, res) => {
 
         await newSupporter.save();
         results.added++;
-      } catch (error) {
+      } catch (error: any) {
         results.failed++;
         results.errors.push({
           supporter: supporter.name || "unknown",
