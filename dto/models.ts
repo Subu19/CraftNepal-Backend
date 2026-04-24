@@ -43,6 +43,7 @@ export interface IGallery {
   photos: IPhoto[];
   createdAt?: Date;
   updatedAt?: Date;
+  deletedAt?: Date | null;
 }
 
 export interface ISupporter {
@@ -61,4 +62,9 @@ export interface IGuide {
   data?: any[];
   image?: string;
   imageKey?: string;
+  icon?: string;
+  iconKey?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
+  deletedAt?: Date | null;
 }

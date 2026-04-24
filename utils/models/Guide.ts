@@ -11,6 +11,11 @@ const guideSchema = new Schema<IGuideModel>({
   data: { type: [Schema.Types.Mixed] },
   image: { type: String },
   imageKey: { type: String },
+  icon: { type: String },
+  iconKey: { type: String },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
+  deletedAt: { type: Date, default: null },
 });
 
 export const Guide = mongoose.model<IGuideModel>("Guide", guideSchema);

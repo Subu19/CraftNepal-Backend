@@ -17,6 +17,7 @@ const gallerySchema = new Schema<IGalleryModel>({
   photos: [photoSchema],
   createdAt: { type: Date, default: Date.now },
   updatedAt: { type: Date, default: Date.now },
+  deletedAt: { type: Date, default: null },
 });
 
 export const Gallery = mongoose.model<IGalleryModel>("Gallery", gallerySchema);

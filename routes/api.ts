@@ -14,12 +14,16 @@ import {
   getGallery,
   handleGalleryDelete,
   handleGalleryAdd,
+  handleCreateSeason,
+  handleDeleteSeason,
+  handleUpdateSeason,
 } from "../Controllers/gallery";
 import {
   handleGetGuide,
   handleGetGuideList,
   handleGuidePost,
   handleGuideFetch,
+  handleDeleteGuide,
 } from "../Controllers/guide";
 import {
   getSupporters,
@@ -58,9 +62,14 @@ apiRouter.get("/guide", handleGetGuideList);
 apiRouter.post(
   "/guide/:name",
   verify,
-  uploadGuide.single("image"),
+  uploadGuide.fields([
+    { name: "image", maxCount: 1 },
+    { name: "icon", maxCount: 1 },
+  ]),
   handleGuidePost,
 );
+
+apiRouter.delete("/guide/:name", verify, handleDeleteGuide);
 apiRouter.get("/guides", handleGuideFetch);
 apiRouter.get("/feed/:limit", getFeed);
 apiRouter.get("/gallery", getGallery);
@@ -71,6 +80,26 @@ apiRouter.post(
   verify,
   uploadGallery.array("photos"),
   handleGalleryAdd,
+);
+
+apiRouter.post(
+  "/gallery/season",
+  verify,
+  uploadGallery.single("cover"),
+  handleCreateSeason,
+);
+
+apiRouter.delete(
+  "/gallery/season/:season",
+  verify,
+  handleDeleteSeason,
+);
+
+apiRouter.patch(
+  "/gallery/season/:season",
+  verify,
+  uploadGallery.single("cover"),
+  handleUpdateSeason,
 );
 
 // Supporter routes

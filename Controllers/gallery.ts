@@ -23,39 +23,7 @@ const DEFAULT_COVER =
  */
 export const getGallery = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const gallery = await Gallery.find({});
-
-    // If no galleries exist, create default seasons
-    if (gallery.length === 0) {
-      const defaultSeasons = [
-        {
-          season: "Season-3",
-          cover: SEASON_COVERS["Season-3"],
-          photos: [],
-        },
-        {
-          season: "Season-4",
-          cover: SEASON_COVERS["Season-4"],
-          photos: [],
-        },
-        {
-          season: "Season-5",
-          cover: SEASON_COVERS["Season-5"],
-          photos: [],
-        },
-        {
-          season: "CraftNepal",
-          cover: SEASON_COVERS["CraftNepal"],
-          photos: [],
-        },
-      ];
-
-      await Gallery.insertMany(defaultSeasons);
-      return res.json({
-        err: false,
-        data: defaultSeasons,
-      });
-    }
+    const gallery = await Gallery.find({ deletedAt: null }).sort({ createdAt: -1 });
 
     // Transform to response format with custom domain URLs
     const formattedGallery = gallery.map((g) => ({
@@ -77,6 +45,182 @@ export const getGallery = async (req: Request, res: Response, next: NextFunction
     res.status(500).json({
       err: true,
       message: "Failed to fetch gallery",
+    });
+  }
+};
+
+/**
+ * Create a new gallery season
+ */
+export const handleCreateSeason = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!(req.user as any)?.isAdmin) {
+      return res.status(403).json({
+        err: true,
+        message: "Only admins can create gallery seasons",
+      });
+    }
+
+    const { season } = req.body;
+    if (!season) {
+      return res.status(400).json({
+        err: true,
+        message: "Season name is required",
+      });
+    }
+
+    // Check if season already exists
+    const existingSeason = await Gallery.findOne({ season });
+    if (existingSeason) {
+      return res.status(400).json({
+        err: true,
+        message: "Season already exists",
+      });
+    }
+
+    let coverUrl = DEFAULT_COVER;
+    if (req.file) {
+      coverUrl = getCustomDomainUrl((req.file as any).key) || DEFAULT_COVER;
+    }
+
+    const newSeason = new Gallery({
+      season,
+      cover: coverUrl,
+      photos: [],
+    });
+
+    await newSeason.save();
+
+    res.json({
+      err: false,
+      message: "Season created successfully",
+      data: {
+        title: newSeason.season,
+        cover: newSeason.cover,
+        photos: [],
+      },
+    });
+  } catch (err) {
+    console.error("Error creating season:", err);
+    res.status(500).json({
+      err: true,
+      message: "Failed to create season",
+    });
+  }
+};
+
+/**
+ * Delete a gallery season and all its photos
+ */
+export const handleDeleteSeason = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!(req.user as any)?.isAdmin) {
+      return res.status(403).json({
+        err: true,
+        message: "Only admins can delete gallery seasons",
+      });
+    }
+
+    const { season } = req.params;
+
+    const gallery = await Gallery.findOne({ season });
+    if (!gallery) {
+      return res.status(404).json({
+        err: true,
+        message: "Season not found",
+      });
+    }
+
+    // Soft delete: just set deletedAt
+    gallery.deletedAt = new Date();
+    await gallery.save();
+
+    res.json({
+      err: false,
+      message: "Season deleted successfully (moved to archive)",
+    });
+  } catch (err) {
+    console.error("Error deleting season:", err);
+    res.status(500).json({
+      err: true,
+      message: "Failed to delete season",
+    });
+  }
+};
+
+/**
+ * Update a gallery season
+ */
+export const handleUpdateSeason = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    if (!(req.user as any)?.isAdmin) {
+      return res.status(403).json({
+        err: true,
+        message: "Only admins can update gallery seasons",
+      });
+    }
+
+    const { season: oldSeasonName } = req.params;
+    const { season: newSeasonName } = req.body;
+
+    const gallery = await Gallery.findOne({ season: oldSeasonName });
+    if (!gallery) {
+      return res.status(404).json({
+        err: true,
+        message: "Season not found",
+      });
+    }
+
+    const updates: any = { updatedAt: new Date() };
+
+    // Update season name if provided and different
+    if (newSeasonName && newSeasonName !== oldSeasonName) {
+      // Check if new name already exists
+      const existing = await Gallery.findOne({ season: newSeasonName });
+      if (existing) {
+        return res.status(400).json({
+          err: true,
+          message: "A season with this name already exists",
+        });
+      }
+      updates.season = newSeasonName;
+    }
+
+    // Update cover photo if provided
+    if (req.file) {
+      // Delete old cover from S3 if it's not the default one
+      if (gallery.cover && gallery.cover !== DEFAULT_COVER) {
+        const oldCoverKey = extractKeyFromUrl(gallery.cover);
+        if (oldCoverKey) {
+          try {
+            await deleteFromS3(oldCoverKey);
+          } catch (err) {
+            console.error(`Failed to delete old cover ${oldCoverKey} from S3:`, err);
+          }
+        }
+      }
+      updates.cover = getCustomDomainUrl((req.file as any).key);
+    }
+
+    const updatedGallery = await Gallery.findOneAndUpdate(
+      { season: oldSeasonName },
+      { $set: updates },
+      { new: true }
+    );
+
+    res.json({
+      err: false,
+      message: "Season updated successfully",
+      data: {
+        title: updatedGallery?.season,
+        cover: updatedGallery?.cover,
+      },
+    });
+  } catch (err) {
+    console.error("Error updating season:", err);
+    res.status(500).json({
+      err: true,
+      message: "Failed to update season",
     });
   }
 };
@@ -140,7 +284,7 @@ export const handleGalleryAdd = async (req: Request, res: Response, next: NextFu
       });
     }
 
-    if (!req.files || req.files.length === 0) {
+    if (!req.files || (req.files as any[]).length === 0) {
       return res.status(400).json({
         err: true,
         message: "No files uploaded",
